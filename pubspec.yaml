@@ -1,0 +1,23 @@
+name: wave_lab
+description: "Wave Lab - Sound & Acoustics Simulator. An offline interactive physics laboratory."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+# No third-party runtime packages on purpose:
+#  - guarantees a fully offline app
+#  - nothing to break when pub.dev versions move
+#  - smaller APK, faster cold start
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
