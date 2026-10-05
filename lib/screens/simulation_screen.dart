@@ -483,7 +483,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
             value: state.showGraph,
-            activeColor: AppColors.cyan,
+            activeThumbColor: AppColors.cyan,
             onChanged: (v) => state.showGraph = v,
             title: const Text(
               'Show graph view',

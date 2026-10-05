@@ -33,7 +33,7 @@ line.
 
 ### Option B — Local build
 
-Requires Flutter **3.16 or newer** (3.24+ recommended) and the Android SDK.
+Requires Flutter **3.32 or newer** and the Android SDK.
 
 ```bash
 # 1. Generate the android/ scaffolding for your Flutter version

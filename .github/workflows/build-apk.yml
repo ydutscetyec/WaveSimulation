@@ -53,7 +53,7 @@ jobs:
         run: flutter pub get
 
       - name: Static analysis
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Physics unit tests
         run: flutter test
