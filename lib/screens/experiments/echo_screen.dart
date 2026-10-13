@@ -2,9 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../models/simulation_state.dart';
 import '../../services/wave_physics.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/wave_theme.dart';
 import '../../widgets/sim_clock.dart';
 import '../../widgets/ui_kit.dart';
 
@@ -18,28 +17,24 @@ class EchoScreen extends StatefulWidget {
 class _EchoScreenState extends State<EchoScreen> {
   final GlobalKey<ClockHostState> _clockKey = GlobalKey<ClockHostState>();
 
+  static const double _v = 343;
   double _distance = 34.3;
   bool _running = false;
 
-  double get _speed => 343;
-  double get _delay => WavePhysics.echoDelay(_distance, _speed);
+  double get _delay => WavePhysics.echoDelay(_distance, _v);
 
-  /// The animation is slowed just enough to be watchable, and the factor is
-  /// shown on screen rather than hidden.
-  double get _slowFactor => (2.2 / _delay).clamp(1.0, 40.0);
+  /// Slowed just enough to watch, and the factor is printed on screen.
+  double get _slow => (2.2 / _delay).clamp(1.0, 40.0);
 
   void _play() {
     _clockKey.currentState?.restart();
     setState(() => _running = true);
-    final state = SimScope.read(context);
-    if (state.awardBadge('ECHO EXPLORER')) {
-      showBadge(context, 'ECHO EXPLORER');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final audible = _distance >= WavePhysics.minEchoDistance(_speed);
+    final c = context.c;
+    final audible = _distance >= WavePhysics.minEchoDistance(_v);
 
     return LabScaffold(
       title: 'Echo',
@@ -48,12 +43,12 @@ class _EchoScreenState extends State<EchoScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 190,
+            height: 185,
             width: double.infinity,
             child: ClockHost(
               key: _clockKey,
               hz: 1,
-              timeRate: 1 / _slowFactor, // simulated seconds per real second
+              timeRate: 1 / _slow,
               running: _running,
               maxSeconds: _delay * 1.15,
               onLimit: () {
@@ -62,21 +57,32 @@ class _EchoScreenState extends State<EchoScreen> {
               builder: (context, clock) => CustomPaint(
                 painter: _EchoPainter(
                   clock: clock,
+                  colors: c,
                   distanceM: _distance,
-                  speedMs: _speed,
+                  speedMs: _v,
                   delayS: _delay,
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(54),
+              backgroundColor: c.accent,
+              foregroundColor: c.onAccent,
+            ),
+            onPressed: _play,
+            icon: const Icon(Icons.campaign),
+            label: const Text('Shout'),
           ),
           const SizedBox(height: 14),
           Panel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const PanelTitle('Distance to the wall', icon: Icons.straighten),
                 StepSlider(
-                  label: 'Move further away and the gap grows',
+                  label: 'Distance to the wall',
                   value: _distance,
                   min: 5,
                   max: 200,
@@ -87,7 +93,7 @@ class _EchoScreenState extends State<EchoScreen> {
                     _running = false;
                   }),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -95,7 +101,7 @@ class _EchoScreenState extends State<EchoScreen> {
                         label: 'Echo delay',
                         value: _delay.toStringAsFixed(2),
                         unit: 's',
-                        color: AppColors.amber,
+                        color: c.amber,
                         compact: true,
                       ),
                     ),
@@ -112,24 +118,13 @@ class _EchoScreenState extends State<EchoScreen> {
                     Expanded(
                       child: ValueCard(
                         label: 'Shown at',
-                        value: '1/${_slowFactor.toStringAsFixed(0)}',
+                        value: '1/${_slow.toStringAsFixed(0)}',
                         unit: 'speed',
-                        color: AppColors.textMuted,
+                        color: c.textSecondary,
                         compact: true,
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 14),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(54),
-                    backgroundColor: AppColors.cyan,
-                    foregroundColor: const Color(0xFF042026),
-                  ),
-                  onPressed: _play,
-                  icon: const Icon(Icons.campaign),
-                  label: const Text('Shout'),
                 ),
               ],
             ),
@@ -141,46 +136,37 @@ class _EchoScreenState extends State<EchoScreen> {
                 const PanelTitle('The calculation', icon: Icons.functions),
                 Text(
                   't = 2d / v\n'
-                  't = 2 x ${_distance.toStringAsFixed(1)} m / 343 m/s\n'
-                  't = ${(2 * _distance).toStringAsFixed(1)} m / 343 m/s\n'
+                  't = 2 x ${_distance.toStringAsFixed(1)} / 343\n'
+                  't = ${(2 * _distance).toStringAsFixed(1)} / 343\n'
                   't = ${_delay.toStringAsFixed(3)} s',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15.5,
                     height: 1.7,
-                    color: AppColors.cyan,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    color: c.accent,
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'The 2 is the whole trick. The sound has to reach the wall '
-                  'and come all the way back, so it covers twice the distance '
-                  'you measured. Leaving the 2 out is the most common mistake '
-                  'in echo problems.',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    color: AppColors.textMuted,
-                    height: 1.5,
-                  ),
+                const SizedBox(height: 10),
+                const Body(
+                  'The 2 is the whole trick: the sound goes there and comes '
+                  'back, so it covers twice the distance you measured.',
                 ),
               ],
             ),
           ),
           Panel(
             margin: EdgeInsets.zero,
-            accent: audible ? null : AppColors.amber,
-            child: Explain(
+            child: Tip(
               audible
                   ? 'At ${_distance.toStringAsFixed(0)} m the return arrives '
-                      '${_delay.toStringAsFixed(2)} s later, which is far enough '
-                      'apart for your ear to hear it as a separate sound.'
+                      '${_delay.toStringAsFixed(2)} s later, far enough apart to '
+                      'hear as a separate sound.'
                   : 'At ${_distance.toStringAsFixed(0)} m the delay is only '
                       '${(_delay * 1000).toStringAsFixed(0)} ms. Below about '
-                      '${WavePhysics.minEchoDistance(_speed).toStringAsFixed(0)} m '
-                      'the reflection arrives too soon to be heard separately - '
-                      'you get reverberation, a smeared tail, instead of an echo.',
+                      '${WavePhysics.minEchoDistance(_v).toStringAsFixed(0)} m you '
+                      'get reverberation, a smeared tail, instead of an echo.',
               icon: audible ? Icons.hearing : Icons.hearing_disabled,
-              color: audible ? AppColors.blue : AppColors.amber,
+              color: audible ? c.blue : c.amber,
             ),
           ),
         ],
@@ -192,12 +178,14 @@ class _EchoScreenState extends State<EchoScreen> {
 class _EchoPainter extends CustomPainter {
   _EchoPainter({
     required this.clock,
+    required this.colors,
     required this.distanceM,
     required this.speedMs,
     required this.delayS,
   }) : super(repaint: clock);
 
   final SimClock clock;
+  final WaveColors colors;
   final double distanceM;
   final double speedMs;
   final double delayS;
@@ -206,121 +194,83 @@ class _EchoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, w, h),
-        const Radius.circular(16),
-      ),
-      Paint()..color = const Color(0xFF081226),
+    final rr = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, h),
+      const Radius.circular(18),
     );
+    canvas.drawRRect(rr, Paint()..color = colors.canvasTop);
+    canvas.save();
+    canvas.clipRRect(rr);
 
-    const personX = 34.0;
+    const personX = 32.0;
     final wallX = w - 30.0;
     final span = wallX - personX;
     final midY = h * 0.52;
 
-    // ground
     canvas.drawLine(
       Offset(0, h - 24),
       Offset(w, h - 24),
       Paint()
-        ..color = fade(AppColors.stroke, 0.9)
+        ..color = fade(colors.stroke, 0.9)
         ..strokeWidth = 1.4,
     );
-
-    // wall
     canvas.drawRect(
-      Rect.fromLTWH(wallX, h * 0.16, 22, h * 0.68),
-      Paint()..color = fade(const Color(0xFFA6AEBB), 0.8),
+      Rect.fromLTWH(wallX, h * 0.16, 22, h * 0.66),
+      Paint()..color = colors.wall,
     );
-
-    // person
     canvas.drawCircle(
-      Offset(personX, midY - 22),
-      9,
-      Paint()..color = AppColors.cyan,
-    );
+        Offset(personX, midY - 22), 9, Paint()..color = colors.accent);
     canvas.drawLine(
       Offset(personX, midY - 13),
       Offset(personX, midY + 16),
       Paint()
-        ..color = AppColors.cyan
+        ..color = colors.accent
         ..strokeWidth = 3.4,
     );
 
-    // The pulse travels at the real speed in simulated time: x = v*t.
     final t = clock.seconds;
-    final travelled = speedMs * t; // metres covered so far
-    final total = 2 * distanceM;
-    final done = travelled >= total;
+    final travelled = speedMs * t;
+    final done = travelled >= 2 * distanceM;
+    final out = travelled <= distanceM;
+    final posM = (out ? travelled : 2 * distanceM - travelled)
+        .clamp(0.0, distanceM);
+    final x = personX + (posM / distanceM) * span;
 
-    double? xOf(double metresFromPerson) {
-      if (metresFromPerson < 0 || metresFromPerson > distanceM) return null;
-      return personX + (metresFromPerson / distanceM) * span;
-    }
-
-    final outbound = travelled <= distanceM;
-    final posM = outbound ? travelled : total - travelled;
-    final x = xOf(posM.clamp(0.0, distanceM));
-
-    if (!done && x != null && t > 0) {
-      // arc fronts, fading with spreading loss
-      final amp = outbound ? 1.0 : 0.72;
+    if (!done && t > 0) {
       for (var i = 0; i < 3; i++) {
-        final r = 8.0 + i * 9;
         canvas.drawArc(
-          Rect.fromCircle(center: Offset(x, midY), radius: r),
-          outbound ? -math.pi / 2.4 : math.pi - math.pi / 2.4,
-          outbound ? math.pi / 1.2 : math.pi / 1.2,
+          Rect.fromCircle(center: Offset(x, midY), radius: 8.0 + i * 9),
+          out ? -math.pi / 2.4 : math.pi - math.pi / 2.4,
+          math.pi / 1.2,
           false,
           Paint()
-            ..color = fade(outbound ? AppColors.cyan : AppColors.amber,
-                (0.85 - i * 0.22) * amp)
+            ..color = fade(out ? colors.compression : colors.amber,
+                (0.85 - i * 0.22) * (out ? 1.0 : 0.72))
             ..style = PaintingStyle.stroke
             ..strokeWidth = 3.0 - i * 0.6,
         );
       }
     }
 
-    // timer readout
-    final elapsed = math.min(t, delayS);
-    _text(
-      canvas,
-      '${elapsed.toStringAsFixed(2)} s',
-      Offset(w / 2, 8),
-      done ? AppColors.amber : AppColors.text,
-      size: 17,
-      centered: true,
-    );
+    _text(canvas, '${math.min(t, delayS).toStringAsFixed(2)} s',
+        Offset(w / 2, 10), done ? colors.amber : colors.textPrimary,
+        size: 17, centered: true);
     _text(
       canvas,
       done
           ? 'ECHO HEARD'
-          : (t <= 0
-              ? 'READY'
-              : (outbound ? 'TRAVELLING OUT' : 'COMING BACK')),
-      Offset(w / 2, 30),
-      done ? AppColors.amber : AppColors.textDim,
+          : (t <= 0 ? 'READY' : (out ? 'TRAVELLING OUT' : 'COMING BACK')),
+      Offset(w / 2, 32),
+      done ? colors.amber : colors.textTertiary,
       centered: true,
     );
-    _text(canvas, '${distanceM.toStringAsFixed(0)} m',
-        Offset(w / 2, h - 20), AppColors.textMuted, centered: true);
-
-    // distance line
-    final p = Paint()
-      ..color = fade(AppColors.textDim, 0.6)
-      ..strokeWidth = 1;
-    canvas.drawLine(Offset(personX, h - 34), Offset(wallX, h - 34), p);
+    _text(canvas, '${distanceM.toStringAsFixed(0)} m', Offset(w / 2, h - 20),
+        colors.textSecondary, centered: true);
+    canvas.restore();
   }
 
-  void _text(
-    Canvas canvas,
-    String s,
-    Offset at,
-    Color color, {
-    double size = 11.5,
-    bool centered = false,
-  }) {
+  void _text(Canvas canvas, String s, Offset at, Color color,
+      {double size = 11.5, bool centered = false}) {
     final tp = TextPainter(
       text: TextSpan(
         text: s,
@@ -338,5 +288,7 @@ class _EchoPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _EchoPainter old) =>
-      old.distanceM != distanceM || old.delayS != delayS;
+      old.distanceM != distanceM ||
+      old.delayS != delayS ||
+      old.colors != colors;
 }

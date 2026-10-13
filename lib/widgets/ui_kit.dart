@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/wave_theme.dart';
 
-/// Screen shell: deep navy gradient, safe area, scrollable body by default.
+/// Standard screen shell.
 class LabScaffold extends StatelessWidget {
   const LabScaffold({
     super.key,
@@ -10,66 +10,58 @@ class LabScaffold extends StatelessWidget {
     required this.child,
     this.subtitle,
     this.actions,
-    this.scrollable = true,
-    this.padding = const EdgeInsets.fromLTRB(16, 4, 16, 28),
+    this.padding = const EdgeInsets.fromLTRB(16, 4, 16, 32),
   });
 
   final String title;
   final String? subtitle;
   final Widget child;
   final List<Widget>? actions;
-  final bool scrollable;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
-    final body = Padding(padding: padding, child: child);
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.bg, AppColors.bgDeep],
-        ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(title),
-              if (subtitle != null)
-                Text(
-                  subtitle!,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textDim,
-                  ),
+    final c = context.c;
+    return Scaffold(
+      backgroundColor: c.bg,
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title),
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: c.textTertiary,
                 ),
-            ],
-          ),
-          actions: actions,
+              ),
+          ],
         ),
-        body: SafeArea(
-          top: false,
-          child: scrollable ? SingleChildScrollView(child: body) : body,
+        actions: actions,
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: padding,
+          child: child,
         ),
       ),
     );
   }
 }
 
-/// Standard content card.
+/// Content card.
 class Panel extends StatelessWidget {
   const Panel({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.accent,
     this.margin = const EdgeInsets.only(bottom: 14),
+    this.accent,
   });
 
   final Widget child;
@@ -79,16 +71,17 @@ class Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     return Container(
       width: double.infinity,
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: accent == null ? AppColors.stroke : fade(accent!, 0.55),
-          width: accent == null ? 1 : 1.4,
+          color: accent ?? c.stroke,
+          width: accent == null ? 1 : 1.5,
         ),
       ),
       child: child,
@@ -96,23 +89,23 @@ class Panel extends StatelessWidget {
   }
 }
 
-/// Small heading used above a group of controls.
 class PanelTitle extends StatelessWidget {
-  const PanelTitle(this.text, {super.key, this.trailing, this.icon});
+  const PanelTitle(this.text, {super.key, this.icon, this.trailing});
 
   final String text;
-  final Widget? trailing;
   final IconData? icon;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 20, color: AppColors.cyan),
-            const SizedBox(width: 8),
+            Icon(icon, size: 20, color: c.accent),
+            const SizedBox(width: 9),
           ],
           Expanded(
             child: Text(text, style: Theme.of(context).textTheme.titleMedium),
@@ -124,34 +117,33 @@ class PanelTitle extends StatelessWidget {
   }
 }
 
-/// A live readout. Label is quiet, value is loud.
+/// A live readout. Label quiet, number loud.
 class ValueCard extends StatelessWidget {
   const ValueCard({
     super.key,
     required this.label,
     required this.value,
     this.unit,
-    this.color = AppColors.cyan,
+    this.color,
     this.compact = false,
   });
 
   final String label;
   final String value;
   final String? unit;
-  final Color color;
+  final Color? color;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+    final col = color ?? c.accent;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: compact ? 8 : 11,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 9 : 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHigh,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: fade(color, 0.3)),
+        color: c.surfaceAlt,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: fade(col, 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,10 +151,10 @@ class ValueCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textDim,
+              fontWeight: FontWeight.w600,
+              color: c.textTertiary,
             ),
           ),
           const SizedBox(height: 3),
@@ -177,19 +169,19 @@ class ValueCard extends StatelessWidget {
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: compact ? 18 : 21,
-                    fontWeight: FontWeight.w700,
-                    color: color,
+                    fontSize: compact ? 19 : 22,
+                    fontWeight: FontWeight.w800,
+                    color: col,
                   ),
                 ),
                 if (unit != null) ...[
                   const SizedBox(width: 4),
                   Text(
                     unit!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
+                      color: c.textSecondary,
                     ),
                   ),
                 ],
@@ -202,7 +194,7 @@ class ValueCard extends StatelessWidget {
   }
 }
 
-/// Large tap target for the home screen.
+/// Home-screen navigation tile.
 class BigButton extends StatelessWidget {
   const BigButton({
     super.key,
@@ -221,25 +213,26 @@ class BigButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     return Material(
-      color: primary ? fade(AppColors.cyan, 0.14) : AppColors.surface,
+      color: primary ? fade(c.accent, 0.12) : c.surface,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 72),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+          constraints: const BoxConstraints(minHeight: 70),
+          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: primary ? AppColors.cyan : AppColors.stroke,
+              color: primary ? c.accent : c.stroke,
               width: primary ? 1.6 : 1,
             ),
           ),
           child: Row(
             children: [
-              Icon(icon, size: 28, color: primary ? AppColors.cyan : AppColors.blue),
+              Icon(icon, size: 27, color: primary ? c.accent : c.blue),
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
@@ -251,22 +244,22 @@ class BigButton extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 17.5,
                         fontWeight: FontWeight.w700,
-                        color: primary ? AppColors.cyan : AppColors.text,
+                        color: primary ? c.accent : c.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       detail,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
-                        color: AppColors.textDim,
                         height: 1.3,
+                        color: c.textTertiary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.textDim),
+              Icon(Icons.chevron_right, color: c.textTertiary),
             ],
           ),
         ),
@@ -275,9 +268,9 @@ class BigButton extends StatelessWidget {
   }
 }
 
-/// Explanation text block. Short lines, never a wall of text.
-class Explain extends StatelessWidget {
-  const Explain(this.text, {super.key, this.icon = Icons.lightbulb_outline, this.color});
+/// One-line teaching note.
+class Tip extends StatelessWidget {
+  const Tip(this.text, {super.key, this.icon = Icons.lightbulb_outline, this.color});
 
   final String text;
   final IconData icon;
@@ -285,26 +278,27 @@ class Explain extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.blue;
+    final c = context.c;
+    final col = color ?? c.blue;
     return Container(
       padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
       decoration: BoxDecoration(
-        color: fade(c, 0.08),
-        borderRadius: BorderRadius.circular(13),
-        border: Border(left: BorderSide(color: c, width: 3)),
+        color: fade(col, 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border(left: BorderSide(color: col, width: 3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 19, color: c),
+          Icon(icon, size: 19, color: col),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14.5,
                 height: 1.45,
-                color: AppColors.text,
+                color: c.textPrimary,
               ),
             ),
           ),
@@ -314,7 +308,7 @@ class Explain extends StatelessWidget {
   }
 }
 
-/// A labelled slider with - and + buttons, sized for thumbs.
+/// Slider with - and + buttons sized for thumbs.
 class StepSlider extends StatelessWidget {
   const StepSlider({
     super.key,
@@ -322,22 +316,22 @@ class StepSlider extends StatelessWidget {
     required this.value,
     required this.min,
     required this.max,
-    required this.onChanged,
     required this.readout,
+    required this.onChanged,
     this.step,
     this.divisions,
-    this.color = AppColors.cyan,
+    this.color,
   });
 
   final String label;
   final double value;
   final double min;
   final double max;
-  final ValueChanged<double> onChanged;
   final String readout;
+  final ValueChanged<double> onChanged;
   final double? step;
   final int? divisions;
-  final Color color;
+  final Color? color;
 
   void _nudge(double sign) {
     final s = step ?? (max - min) / 40;
@@ -346,6 +340,8 @@ class StepSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+    final col = color ?? c.accent;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -354,19 +350,19 @@ class StepSlider extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
+                  color: c.textSecondary,
                 ),
               ),
             ),
             Text(
               readout,
               style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: col,
               ),
             ),
           ],
@@ -377,9 +373,9 @@ class StepSlider extends StatelessWidget {
             Expanded(
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: color,
-                  thumbColor: color,
-                  overlayColor: fade(color, 0.18),
+                  activeTrackColor: col,
+                  thumbColor: col,
+                  overlayColor: fade(col, 0.16),
                 ),
                 child: Slider(
                   value: value.clamp(min, max),
@@ -406,8 +402,9 @@ class _RoundBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     return Material(
-      color: AppColors.surfaceHigh,
+      color: c.surfaceAlt,
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -415,14 +412,14 @@ class _RoundBtn extends StatelessWidget {
         child: SizedBox(
           width: 46,
           height: 46,
-          child: Icon(icon, size: 24, color: AppColors.text),
+          child: Icon(icon, size: 24, color: c.textPrimary),
         ),
       ),
     );
   }
 }
 
-/// Horizontal chip row used for presets and material pickers.
+/// Horizontal selector.
 class ChipRow<T> extends StatelessWidget {
   const ChipRow({
     super.key,
@@ -437,10 +434,11 @@ class ChipRow<T> extends StatelessWidget {
   final String Function(T) labelOf;
   final T? selected;
   final ValueChanged<T> onSelect;
-  final Color Function(T)? colorOf;
+  final Color Function(T, WaveColors)? colorOf;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     return SizedBox(
       height: 46,
       child: ListView.separated(
@@ -450,29 +448,29 @@ class ChipRow<T> extends StatelessWidget {
         itemBuilder: (context, i) {
           final item = items[i];
           final isSel = item == selected;
-          final c = colorOf?.call(item) ?? AppColors.cyan;
+          final col = colorOf?.call(item, c) ?? c.accent;
           return Material(
-            color: isSel ? fade(c, 0.2) : AppColors.surfaceHigh,
+            color: isSel ? fade(col, 0.16) : c.surfaceAlt,
             borderRadius: BorderRadius.circular(13),
             child: InkWell(
               borderRadius: BorderRadius.circular(13),
               onTap: () => onSelect(item),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 17),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(13),
                   border: Border.all(
-                    color: isSel ? c : AppColors.stroke,
-                    width: isSel ? 1.6 : 1,
+                    color: isSel ? col : c.stroke,
+                    width: isSel ? 1.7 : 1,
                   ),
                 ),
                 child: Text(
                   labelOf(item),
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: isSel ? c : AppColors.textMuted,
+                    fontWeight: FontWeight.w700,
+                    color: isSel ? col : c.textSecondary,
                   ),
                 ),
               ),
@@ -484,30 +482,96 @@ class ChipRow<T> extends StatelessWidget {
   }
 }
 
-/// Shown when a badge is earned.
-void showBadge(BuildContext context, String badge) {
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      duration: const Duration(seconds: 3),
-      backgroundColor: AppColors.surfaceHigh,
-      behavior: SnackBarBehavior.floating,
-      content: Row(
+/// Compact equal-width segmented control.
+class Segmented extends StatelessWidget {
+  const Segmented({
+    super.key,
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: c.surfaceAlt,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: c.stroke),
+      ),
+      child: Row(
         children: [
-          const Icon(Icons.military_tech, color: AppColors.amber, size: 24),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Badge earned: $badge',
-              style: const TextStyle(
-                color: AppColors.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+          for (var i = 0; i < labels.length; i++)
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => onSelect(i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: i == selectedIndex
+                        ? fade(c.accent, 0.18)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    labels[i],
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: i == selectedIndex ? c.accent : c.textTertiary,
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+/// Body copy at a guaranteed-readable size.
+class Body extends StatelessWidget {
+  const Body(this.text, {super.key, this.color, this.size = 14.5});
+
+  final String text;
+  final Color? color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: size,
+        height: 1.5,
+        color: color ?? context.c.textSecondary,
+      ),
+    );
+  }
+}
+
+/// Theme switch for app bars.
+class ThemeToggle extends StatelessWidget {
+  const ThemeToggle({super.key, required this.isDark, required this.onTap});
+
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+      icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+      onPressed: onTap,
+    );
+  }
 }

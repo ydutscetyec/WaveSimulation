@@ -4,7 +4,7 @@ import '../models/acoustic_material.dart';
 import '../models/everyday_object.dart';
 import '../models/simulation_state.dart';
 import '../services/wave_physics.dart';
-import '../theme/app_theme.dart';
+import '../theme/palette.dart';
 import '../widgets/ui_kit.dart';
 import 'simulation_screen.dart';
 
@@ -15,26 +15,29 @@ class MaterialLabScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = pal(context);
     return DefaultTabController(
       length: 2,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.bg, AppColors.bgDeep],
+            colors: [p.bg, p.bgDeep],
           ),
         ),
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            title: const Text('Material lab'),
-            bottom: const TabBar(
-              indicatorColor: AppColors.cyan,
-              labelColor: AppColors.cyan,
-              unselectedLabelColor: AppColors.textDim,
-              labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              tabs: [
+            title: const Text('Materials'),
+            actions: const [ThemeToggle(), SizedBox(width: 4)],
+            bottom: TabBar(
+              indicatorColor: p.accent,
+              labelColor: p.accent,
+              unselectedLabelColor: p.textMuted,
+              labelStyle:
+                  const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+              tabs: const [
                 Tab(text: 'Media'),
                 Tab(text: 'Everyday objects'),
               ],
@@ -42,9 +45,7 @@ class MaterialLabScreen extends StatelessWidget {
           ),
           body: const SafeArea(
             top: false,
-            child: TabBarView(
-              children: [_MediaTab(), _ObjectsTab()],
-            ),
+            child: TabBarView(children: [_MediaTab(), _ObjectsTab()]),
           ),
         ),
       ),
@@ -52,7 +53,6 @@ class MaterialLabScreen extends StatelessWidget {
   }
 }
 
-// --------------------------------------------------------------- media tab
 class _MediaTab extends StatelessWidget {
   const _MediaTab();
 
@@ -67,30 +67,26 @@ class _MediaTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           children: [
             Explain(
-              'Every wavelength below is worked out for the frequency you left '
-              'in the simulator, ${f.toStringAsFixed(0)} Hz. The source shakes '
-              'at the same rate in all of them - only v changes.',
+              'Each wavelength below is worked out at '
+              '${f.toStringAsFixed(0)} Hz, the frequency left in the '
+              'simulator. The source shakes the same in all of them; only v '
+              'changes.',
               icon: Icons.functions,
             ),
             const SizedBox(height: 14),
             for (final m in Media.all) _MediaCard(material: m, frequency: f),
-            Panel(
-              accent: AppColors.textDim,
+            const Panel(
+              margin: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const PanelTitle('Why the numbers vary', icon: Icons.warning_amber),
-                  const Text(
-                    'There is no single sound speed for a material. It depends '
-                    'on temperature, density, stiffness, moisture, grain '
+                  PanelTitle('Why these are approximate',
+                      icon: Icons.warning_amber),
+                  Body(
+                    'No material has one sound speed. It shifts with '
+                    'temperature, density, stiffness, moisture, grain '
                     'direction and alloy, and in solids it differs for '
-                    'longitudinal and shear waves. These are mid-range '
-                    'teaching figures, not specifications.',
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      color: AppColors.textMuted,
-                      height: 1.5,
-                    ),
+                    'longitudinal and shear waves.',
                   ),
                 ],
               ),
@@ -110,12 +106,14 @@ class _MediaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lambda = WavePhysics.wavelength(material.speedMs, frequency);
+    final p = pal(context);
     final state = SimScope.of(context);
-    final isSelected = identical(state.medium, material);
+    final lambda = WavePhysics.wavelength(material.speedMs, frequency);
+    final selected = identical(state.medium, material);
+    final c = material.color(p);
 
     return Panel(
-      accent: isSelected ? material.color : null,
+      accent: selected ? c : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -124,10 +122,7 @@ class _MediaCard extends StatelessWidget {
               Container(
                 width: 12,
                 height: 12,
-                decoration: BoxDecoration(
-                  color: material.color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: c, shape: BoxShape.circle),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -136,10 +131,10 @@ class _MediaCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              if (isSelected)
-                const Text(
+              if (selected)
+                Text(
                   'in simulator',
-                  style: TextStyle(fontSize: 13, color: AppColors.cyan),
+                  style: TextStyle(fontSize: 13.5, color: c),
                 ),
             ],
           ),
@@ -148,10 +143,10 @@ class _MediaCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ValueCard(
-                  label: 'Sound speed',
+                  label: 'Speed',
                   value: material.speedMs.toStringAsFixed(0),
                   unit: 'm/s',
-                  color: material.color,
+                  color: c,
                   compact: true,
                 ),
               ),
@@ -163,7 +158,7 @@ class _MediaCard extends StatelessWidget {
                       ? material.densityKgM3.toStringAsFixed(1)
                       : material.densityKgM3.toStringAsFixed(0),
                   unit: 'kg/m3',
-                  color: AppColors.textMuted,
+                  color: p.textMuted,
                   compact: true,
                 ),
               ),
@@ -175,32 +170,20 @@ class _MediaCard extends StatelessWidget {
                       ? (lambda * 100).toStringAsFixed(1)
                       : lambda.toStringAsFixed(2),
                   unit: lambda < 1 ? 'cm' : 'm',
-                  color: AppColors.amber,
+                  color: p.warm,
                   compact: true,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            material.behaviour,
-            style: const TextStyle(
-              fontSize: 14.5,
-              color: AppColors.textMuted,
-              height: 1.45,
-            ),
-          ),
+          Body(material.behaviour),
           const SizedBox(height: 8),
-          Text(
+          Body(
             'Impedance Z = rho x v = ${material.impedanceLabel}. '
             '${material.note}',
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textDim,
-              height: 1.4,
-            ),
+            size: 13.5,
           ),
-          const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
@@ -218,7 +201,6 @@ class _MediaCard extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------- objects tab
 class _ObjectsTab extends StatelessWidget {
   const _ObjectsTab();
 
@@ -228,8 +210,8 @@ class _ObjectsTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
         const Explain(
-          'From real life to simulation. Each object is something you can find '
-          'at home today, and each one maps onto a control in the simulator.',
+          'From real life to simulation. Everything here is in your house '
+          'today, and each one maps onto a control in the simulator.',
           icon: Icons.handyman_outlined,
         ),
         const SizedBox(height: 14),
@@ -246,6 +228,7 @@ class _ObjectTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = pal(context);
     return Panel(
       padding: EdgeInsets.zero,
       child: Theme(
@@ -253,22 +236,23 @@ class _ObjectTile extends StatelessWidget {
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          iconColor: AppColors.cyan,
-          collapsedIconColor: AppColors.textDim,
-          leading: Icon(object.icon, color: AppColors.cyan, size: 26),
-          title: Text(
-            object.name,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          iconColor: p.accent,
+          collapsedIconColor: p.textMuted,
+          leading: Icon(object.icon, color: p.accent, size: 26),
+          title:
+              Text(object.name, style: Theme.of(context).textTheme.titleMedium),
           subtitle: Text(
             'Linked control: ${object.linkedParameter}',
-            style: const TextStyle(fontSize: 13.5, color: AppColors.textDim),
+            style: TextStyle(fontSize: 14, color: p.textFaint),
           ),
           children: [
-            _flow(),
-            const SizedBox(height: 14),
-            _TryItYourself(object: object),
+            _step(p, 'How it vibrates', object.howItVibrates, Icons.vibration),
+            _step(p, 'How sound is produced', object.howSoundIsProduced,
+                Icons.waves),
+            _step(p, 'What to look for', object.whatToObserve,
+                Icons.visibility_outlined),
             const SizedBox(height: 12),
+            _tryIt(context, p),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -289,117 +273,141 @@ class _ObjectTile extends StatelessWidget {
     );
   }
 
-  Widget _flow() {
-    Widget step(String heading, String body, IconData icon) => Padding(
-          padding: const EdgeInsets.only(bottom: 11),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 18, color: AppColors.blue),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      heading,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDim,
-                        letterSpacing: 0.4,
-                      ),
+  Widget _step(Pal p, String heading, String body, IconData icon) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 18, color: p.blue),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    heading,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: p.textFaint,
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      body,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        color: AppColors.text,
-                        height: 1.45,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    body,
+                    style:
+                        TextStyle(fontSize: 15, height: 1.45, color: p.text),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
+            ),
+          ],
+        ),
+      );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        step('HOW IT VIBRATES', object.howItVibrates, Icons.vibration),
-        step('HOW SOUND IS PRODUCED', object.howSoundIsProduced, Icons.waves),
-        step('WHAT TO OBSERVE', object.whatToObserve, Icons.visibility_outlined),
-      ],
-    );
-  }
-}
-
-class _TryItYourself extends StatelessWidget {
-  const _TryItYourself({required this.object});
-
-  final EverydayObject object;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _tryIt(BuildContext context, Pal p) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHigh,
+        color: p.surfaceHigh,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.stroke),
+        border: Border.all(color: p.stroke),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.science, size: 19, color: AppColors.amber),
-              SizedBox(width: 8),
+              Icon(Icons.science, size: 19, color: p.warm),
+              const SizedBox(width: 8),
               Text(
                 'Try it yourself',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.amber,
+                  color: p.warm,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const _MiniHeading('Materials'),
+          _heading(p, 'Materials'),
           for (final m in object.materials)
-            _Bullet(text: m, marker: Icons.circle, small: true),
-          const SizedBox(height: 10),
-          const _MiniHeading('Steps'),
-          for (var i = 0; i < object.steps.length; i++)
-            _Numbered(index: i + 1, text: object.steps[i]),
-          const SizedBox(height: 10),
-          const _MiniHeading('Why it happens'),
-          Text(
-            object.why,
-            style: const TextStyle(
-              fontSize: 14.5,
-              color: AppColors.text,
-              height: 1.5,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 5,
+                    height: 5,
+                    margin: const EdgeInsets.only(top: 9, right: 10),
+                    decoration:
+                        BoxDecoration(color: p.textFaint, shape: BoxShape.circle),
+                  ),
+                  Expanded(
+                    child: Text(
+                      m,
+                      style: TextStyle(
+                          fontSize: 15, height: 1.45, color: p.text),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          const SizedBox(height: 10),
+          _heading(p, 'Steps'),
+          for (var i = 0; i < object.steps.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 23,
+                    height: 23,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: fade(p.accent, p.isDark ? 0.2 : 0.14),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: p.accent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      object.steps[i],
+                      style:
+                          TextStyle(fontSize: 15, height: 1.45, color: p.text),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 10),
+          _heading(p, 'Why it happens'),
+          Body(object.why, muted: false),
           if (object.safety != null) ...[
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.shield_outlined, size: 18, color: AppColors.red),
+                Icon(Icons.shield_outlined, size: 18, color: p.danger),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     object.safety!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.red,
-                      height: 1.4,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      height: 1.45,
+                      color: p.danger,
                     ),
                   ),
                 ),
@@ -410,107 +418,16 @@ class _TryItYourself extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MiniHeading extends StatelessWidget {
-  const _MiniHeading(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textMuted,
+  Widget _heading(Pal p, String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w700,
+            color: p.textMuted,
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _Bullet extends StatelessWidget {
-  const _Bullet({required this.text, this.marker = Icons.circle, this.small = false});
-
-  final String text;
-  final IconData marker;
-  final bool small;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 7),
-            child: Icon(marker, size: small ? 6 : 10, color: AppColors.textDim),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14.5,
-                color: AppColors.text,
-                height: 1.45,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Numbered extends StatelessWidget {
-  const _Numbered({required this.index, required this.text});
-
-  final int index;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: fade(AppColors.cyan, 0.15),
-              borderRadius: BorderRadius.circular(7),
-            ),
-            child: Text(
-              '$index',
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.cyan,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14.5,
-                color: AppColors.text,
-                height: 1.45,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      );
 }
