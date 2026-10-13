@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../models/simulation_state.dart';
-import '../../theme/wave_theme.dart';
 import '../../widgets/ui_kit.dart';
 import 'echo_screen.dart';
 import 'interference_screen.dart';
