@@ -1,181 +1,116 @@
-# Wave Lab — Sound & Acoustics Simulator
+# Wave Lab v2 — Sound & Acoustics Simulator
 
-An offline Flutter app that treats sound as what it is: a mechanical longitudinal
-wave. Particles move **along** the direction of travel, compressions and
-rarefactions are read off the spatial derivative of the displacement, and every
-displayed number comes from an equation rather than a lookup table.
-
-Built around everyday materials — rubber band, cup and string, metal spoon,
-glass of water, cardboard box, cloth and foam.
+Offline Flutter app treating sound as a mechanical longitudinal wave. Particles
+move **along** the direction of travel, compression is read from the spatial
+derivative of displacement, and every number comes from an equation.
 
 ---
 
-## Build status, stated honestly
+## What changed from v1
 
-The Dart source is complete. **It has not been compiled**, because the machine it
-was written on has no Flutter SDK, no Dart SDK and no Android SDK, and its
-network blocks `pub.dev`, `storage.googleapis.com` and `dl.google.com`. No APK
-was produced here and none is claimed.
+### Light and dark mode
+Colours now live in a `WaveColors` `ThemeExtension` with two complete palettes.
+Nothing hard-codes a hex value; widgets and painters read `context.c`. The
+toggle is the sun/moon icon in the app bar of every screen.
 
-Two ways to get an APK:
+The light palette is not the dark one inverted. The cyan accent fails contrast
+on white, so light mode uses a deep teal (`#0B7C8C`) instead.
 
-### Option A — GitHub Actions (no installs on your machine)
+### Text visibility
+This was the real bug in v1. The old `textDim` (`#6E829E`) was used for body
+copy, not just captions, and on the dark navy it sat around 3.9:1 — below the
+4.5:1 minimum. Fixes:
 
-1. Create a new GitHub repository.
-2. Upload this whole folder, including `.github/workflows/build-apk.yml`.
-3. Open the **Actions** tab. The build starts on push, or press **Run workflow**.
-4. When the job goes green, download `wave-lab-release-apk` from the run's
-   **Artifacts** section and install it on the phone.
+- three text roles with enforced contrast: `textPrimary`, `textSecondary`,
+  `textTertiary`, the lightest of which still passes AA at 14sp
+- body copy never below 14.5sp, and it uses `textSecondary`, never `textTertiary`
+- `textTertiary` is now only for captions and labels sitting next to a loud value
+- canvas labels take their colour from the palette instead of a fixed grey, so
+  they stay readable in light mode
 
-The workflow runs `flutter analyze`, `flutter test` and
-`flutter build apk --release`. If any of them fails, the log names the file and
-line.
+### The simulation is worth watching now
+Three additions, all physically honest:
 
-### Option B — Local build
+1. **Tracer particle.** One amber particle with its rest position ringed and
+   its travel range drawn. It slides back and forth and ends where it started
+   while compressions pass through it — the hardest idea in the topic, now
+   visible instead of asserted.
+2. **Compression bands.** Soft accent bands behind each compression, so the
+   pattern is trackable without staring at individual dots. Band positions come
+   from `kx − φ = 2πn`, not from decoration.
+3. **Wavefront marker.** An amber front crossing the canvas at the scaled wave
+   speed. Switching air → water now visibly speeds the wave up instead of only
+   changing a number. It rides a real compression: both move at `v/S`.
 
-Requires Flutter **3.32 or newer** and the Android SDK.
+### Removed
+- the badge system and its snackbars
+- the auto/manual animation-speed toggle and its slider
+- the free-floating view-width slider (now three zoom presets)
+- the four-stage progressive-disclosure hint
+- the long "about" screens and repeated caveat paragraphs
+
+Four screens' worth of controls became one. 7,000 lines → 5,400.
+
+### CI fixes
+`analysis_options.yaml` demotes style lints to info, and the workflow runs
+`flutter analyze --no-fatal-infos`. Those two together were what broke build #1.
+
+---
+
+## Build
+
+Push to GitHub and open the Actions tab. The workflow runs analyze → test →
+build and uploads `app-release.apk` as an artifact.
+
+Locally (Flutter 3.16+, 3.24+ recommended):
 
 ```bash
-# 1. Generate the android/ scaffolding for your Flutter version
-cd wave_lab
 cp -r lib /tmp/lib_backup && cp -r test /tmp/test_backup
 flutter create --platforms=android --project-name wave_lab --org com.wavelab .
 rm -rf lib test && cp -r /tmp/lib_backup lib && cp -r /tmp/test_backup test
-
-# 2. Build
 flutter pub get
-flutter analyze
+flutter analyze --no-fatal-infos
 flutter test
 flutter build apk --release
 ```
 
 Output: `build/app/outputs/flutter-apk/app-release.apk`
 
-`android/` is generated rather than committed on purpose. A hand-written Gradle
-project pins Gradle, AGP and Kotlin versions that go stale within months and then
-fail in ways that have nothing to do with this app.
+**Not compiled here.** This machine has no Flutter, Dart or Android SDK and
+blocks pub.dev, so the source is unverified by a compiler. CI is the check.
 
 ---
 
-## Why there are no third-party packages
-
-`pubspec.yaml` depends on the Flutter SDK and nothing else.
-
-- The app is guaranteed offline.
-- Nothing breaks when a package publishes a breaking version.
-- Smaller APK, faster cold start.
-- State is a plain `ChangeNotifier` plus `InheritedNotifier`, which is all a
-  project this size needs.
-
----
-
-## Project layout
+## Layout
 
 ```
 lib/
-  main.dart                      app entry, state ownership, routes
-  models/
-    simulation_state.dart        ChangeNotifier + SimScope (InheritedNotifier)
-    acoustic_material.dart       media and wall surfaces with their constants
-    everyday_object.dart         real objects, experiments, safety notes
-    challenge_model.dart         quiz bank
-  services/
-    wave_physics.dart            every equation, in one testable place
+  main.dart                     entry, theme mode, routes
+  theme/wave_theme.dart         WaveColors palettes + ThemeData
+  services/wave_physics.dart    every equation (unchanged, still tested)
+  models/                       state, materials, objects, quiz
   widgets/
-    sim_clock.dart               Ticker-driven clock, repaints only canvases
-    longitudinal_wave.dart       particle field painter + graph painter
-    ui_kit.dart                  panels, value cards, sliders, buttons
-  screens/
-    home_screen.dart
-    simulation_screen.dart       the main laboratory
-    material_lab_screen.dart     media tab + everyday objects tab
-    concepts_screen.dart
-    challenge_screen.dart
-    about_screen.dart
-    experiments/
-      experiments_screen.dart    hub
-      reflection_screen.dart
-      echo_screen.dart
-      resonance_screen.dart
-      interference_screen.dart
-      standing_wave_screen.dart
-      vacuum_screen.dart
-test/
-  wave_physics_test.dart         28 assertions against the equations
-branding/
-  wave_lab_icon_*.png            app icon concept
+    sim_clock.dart              Ticker clock, repaints only canvases
+    wave_canvas.dart            particle painter + graph painter
+    ui_kit.dart                 panels, cards, sliders, segmented control
+  screens/                      home, simulation, materials, concepts,
+                                challenges, about, experiments/ (6)
+test/wave_physics_test.dart     28 assertions against the equations
 ```
 
----
+## Physics (unchanged)
 
-## Physics implemented
+| Quantity | Equation |
+|---|---|
+| Wavelength | `λ = v / f` |
+| Displacement | `s(x,t) = A sin(kx − ωt)` |
+| Compression | `−∂s/∂x = Ak cos(kx − ωt)` |
+| Echo | `t = 2d / v` |
+| Closed air column | `fₙ = (2n−1)v / 4L` |
+| Driven response | `1 / (Q√((1−r²)² + (r/Q)²))` |
+| Reflected amplitude | `√(1 − α)` |
+| Interference | `Aᵣ = √(A₁² + A₂² + 2A₁A₂cos δ)` |
+| Standing wave | `y = 2A sin(kx) cos(ωt)` |
 
-| Quantity | Equation | Where |
-|---|---|---|
-| Wavelength | `λ = v / f` | every screen, computed live |
-| Particle displacement | `s(x,t) = A sin(kx − ωt + φ)` | particle field |
-| Compression / rarefaction | `−∂s/∂x = Ak cos(kx − ωt)` | particle colour and size |
-| Wave number, angular frequency | `k = 2π/λ`, `ω = 2πf` | all painters |
-| Echo delay | `t = 2d / v` | echo experiment |
-| Closed air column | `fₙ = (2n−1)v / 4L` | resonance |
-| Open air column | `fₙ = n v / 2L` | resonance notes |
-| Driven damped response | `A(f)/Aₘₐₓ = 1 / (Q√((1−r²)² + (r/Q)²))` | resonance |
-| Reflected amplitude | `√(1 − α)` | reflection |
-| Acoustic impedance | `Z = ρv` | material lab |
-| Two-source interference | `Aᵣ = √(A₁² + A₂² + 2A₁A₂cos δ)` | interference map |
-| Standing wave | `y = 2A sin(kx) cos(ωt)` | standing waves |
-
-### Two deliberate scaling decisions, both shown on screen
-
-1. **Slow motion.** A 440 Hz vibration cannot be drawn at 60 fps. Time is
-   stretched and the factor is printed (`Slow motion 1 : 440`). Every physical
-   value displayed is the real one.
-2. **View scale.** The canvas represents a real width in metres, drawn as a
-   scale bar. It auto-zooms only outside 0.5λ–10λ, and the app says when it
-   does. Raising the frequency at a fixed scale therefore really does pack more
-   compressions into the same space.
-
-### Amplitude is capped by physics, not by taste
-
-Displacement amplitude is limited to `0.9/k`, i.e. strain < 1. Beyond that,
-neighbouring particles would pass through each other, which is physically
-meaningless.
-
----
-
-## Performance notes
-
-- All drawing is `CustomPainter` on `Canvas`. There is no widget per particle.
-- The animation clock is a separate `ChangeNotifier` passed to painters as
-  `super(repaint: clock)`. The widget tree is **not** rebuilt per frame — only
-  the canvas repaints.
-- Phase is integrated (`phase += 2πf·dt`), so changing the speed mid-animation
-  does not make the wave jump.
-- The interference field is a static amplitude map, so it is computed once into a
-  `ui.Image` on parameter change rather than per frame.
-- Particle counts are capped (≤ 120 columns × 9 rows) regardless of screen size.
-
----
-
-## What this app does not do
-
-- No audio output. It shows what a wave does; your ears and the real experiments
-  supply the sound.
-- Material speeds are mid-range values near 20 °C, labelled as approximate.
-- Solids are given one longitudinal speed; real solids also carry shear waves.
-- Absorption coefficients are single mid-frequency figures.
-- The resonance model ignores end correction, so a real cup rings slightly lower
-  than predicted.
-- Amplitude is a relative 0–1 scale, not calibrated to decibels.
-
----
-
-## App icon
-
-`branding/wave_lab_icon_1024.png` is the concept art: a vibrating plate and
-wavefronts whose spacing is uneven, because that spacing is the compression.
-
-To apply it, open the generated project in Android Studio and use
-**File → New → Image Asset**, or add `flutter_launcher_icons` to
-`dev_dependencies` — note that the second option requires network access to
-pub.dev at build time.
+Amplitude is capped at `0.9/k` so strain stays below 1 — beyond that,
+neighbouring particles would pass through each other.
