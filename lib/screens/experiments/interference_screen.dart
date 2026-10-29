@@ -89,22 +89,6 @@ class _InterferenceScreenState extends State<InterferenceScreen> {
     return completer.future;
   }
 
-  double _amplitudeAt(double x, double y) {
-    final k = WavePhysics.waveNumber(_lambda);
-    final r1 = math.sqrt(
-        math.pow(x - _s1.dx, 2).toDouble() + math.pow(y - _s1.dy, 2).toDouble());
-    final r2 = math.sqrt(
-        math.pow(x - _s2.dx, 2).toDouble() + math.pow(y - _s2.dy, 2).toDouble());
-    return WavePhysics.interferenceAmplitude(
-      a1: WavePhysics.spread(r1),
-      a2: WavePhysics.spread(r2),
-      waveNumberK: k,
-      r1: r1,
-      r2: r2,
-      phaseOffset: _phaseDeg * math.pi / 180,
-    );
-  }
-
   /// Builds the field.
   ///
   /// Each point gets the sum of two sine waves of the same frequency, so the
