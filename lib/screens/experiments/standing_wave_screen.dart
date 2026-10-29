@@ -25,9 +25,23 @@ class _StandingWaveScreenState extends State<StandingWaveScreen> {
 
   int _harmonic = 3;
   bool _running = true;
+  bool _bothFixed = true;
 
-  double get _lambda => 2 * _lengthM / _harmonic;
+  /// Both ends fixed:   L = n * lambda/2      ->  lambda = 2L/n
+  /// One end free:       L = (2n-1) * lambda/4 ->  lambda = 4L/(2n-1)
+  /// The free-end case keeps odd harmonics only, which is the same rule the
+  /// resonance tube follows.
+  double get _lambda => _bothFixed
+      ? 2 * _lengthM / _harmonic
+      : 4 * _lengthM / (2 * _harmonic - 1);
+
   double get _frequency => WavePhysics.frequencyFor(_v, _lambda);
+
+  /// Both ends fixed has a node at each end; a free end carries an antinode.
+  int get _nodeCount => _bothFixed ? _harmonic + 1 : _harmonic;
+
+  String get _harmonicLabel =>
+      _bothFixed ? 'n = $_harmonic' : 'n = ${2 * _harmonic - 1} (odd only)';
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +64,7 @@ class _StandingWaveScreenState extends State<StandingWaveScreen> {
                   clock: clock,
                   colors: c,
                   harmonic: _harmonic,
+                  bothFixed: _bothFixed,
                 ),
               ),
             ),
@@ -67,6 +82,13 @@ class _StandingWaveScreenState extends State<StandingWaveScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const PanelTitle('Ends', icon: Icons.vertical_align_center),
+                Segmented(
+                  labels: const ['Both fixed', 'One end free'],
+                  selectedIndex: _bothFixed ? 0 : 1,
+                  onSelect: (i) => setState(() => _bothFixed = i == 0),
+                ),
+                const SizedBox(height: 14),
                 StepSlider(
                   label: 'Harmonic',
                   value: _harmonic.toDouble(),
@@ -74,7 +96,7 @@ class _StandingWaveScreenState extends State<StandingWaveScreen> {
                   max: 6,
                   step: 1,
                   divisions: 5,
-                  readout: 'n = $_harmonic',
+                  readout: _harmonicLabel,
                   onChanged: (v) => setState(() => _harmonic = v.round()),
                 ),
                 const SizedBox(height: 8),
@@ -102,7 +124,7 @@ class _StandingWaveScreenState extends State<StandingWaveScreen> {
                     Expanded(
                       child: ValueCard(
                         label: 'Nodes',
-                        value: '${_harmonic + 1}',
+                        value: '$_nodeCount',
                         color: c.blue,
                         compact: true,
                       ),
@@ -136,9 +158,14 @@ class _StandingWaveScreenState extends State<StandingWaveScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Fixed at both ends over L = 1.00 m: lambda = 2L / n = '
-                  '${_lambda.toStringAsFixed(2)} m, f = v / lambda = '
-                  '${_frequency.toStringAsFixed(0)} Hz.',
+                  _bothFixed
+                      ? 'Fixed at both ends over L = 1.00 m: lambda = 2L / n = '
+                          '${_lambda.toStringAsFixed(2)} m, f = v / lambda = '
+                          '${_frequency.toStringAsFixed(0)} Hz.'
+                      : 'One end free over L = 1.00 m: lambda = 4L / (2n-1) = '
+                          '${_lambda.toStringAsFixed(2)} m, f = '
+                          '${_frequency.toStringAsFixed(0)} Hz. Only odd '
+                          'harmonics fit.',
                   style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
@@ -166,11 +193,13 @@ class _StandingPainter extends CustomPainter {
     required this.clock,
     required this.colors,
     required this.harmonic,
+    required this.bothFixed,
   }) : super(repaint: clock);
 
   final SimClock clock;
   final WaveColors colors;
   final int harmonic;
+  final bool bothFixed;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -186,7 +215,10 @@ class _StandingPainter extends CustomPainter {
 
     final laneH = h / 3;
     final phase = clock.phase;
-    final k = harmonic * math.pi;
+    // over the normalised length u in [0,1]
+    final k = bothFixed
+        ? harmonic * math.pi
+        : (2 * harmonic - 1) * math.pi / 2;
     final amp = laneH * 0.22; // the sum reaches 2*amp, still inside the lane
 
     Path curve(double midY, double Function(double u) f) {
@@ -240,16 +272,15 @@ class _StandingPainter extends CustomPainter {
     _text(canvas, 'SUM = STANDING WAVE', Offset(10, laneH * 2 + 8),
         colors.amber);
 
-    for (var n = 0; n <= harmonic; n++) {
-      canvas.drawCircle(
-        Offset(n / harmonic * w, m3),
-        4,
-        Paint()..color = colors.blue,
-      );
+    // nodes sit where sin(k u) = 0, i.e. k u = m * pi
+    for (var m = 0;; m++) {
+      final u = m * math.pi / k;
+      if (u > 1.0001) break;
+      canvas.drawCircle(Offset(u * w, m3), 4, Paint()..color = colors.blue);
     }
-    final antiX = (0.5 / harmonic) * w;
+    final antiX = (math.pi / 2 / k) * w;
     canvas.drawCircle(Offset(antiX, m3), 4, Paint()..color = colors.amber);
-    _text(canvas, 'NODE', Offset(w / harmonic - 16, m3 + 10), colors.blue);
+    _text(canvas, 'NODE', Offset((math.pi / k) * w - 16, m3 + 10), colors.blue);
     _text(canvas, 'ANTINODE', Offset(antiX - 18, m3 - laneH * 0.40),
         colors.amber);
     canvas.restore();
@@ -273,5 +304,7 @@ class _StandingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _StandingPainter old) =>
-      old.harmonic != harmonic || old.colors != colors;
+      old.harmonic != harmonic ||
+      old.bothFixed != bothFixed ||
+      old.colors != colors;
 }

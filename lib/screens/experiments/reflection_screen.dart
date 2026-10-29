@@ -135,6 +135,23 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
                   'frequencies straight through.',
                   icon: Icons.warning_amber,
                 ),
+                const SizedBox(height: 12),
+                const PanelTitle('How this screen is modelled',
+                    icon: Icons.info_outline),
+                const Body(
+                  'This is an energy-accounting demonstration, not a solved '
+                  'wave. The packet is drawn travelling out and back, and its '
+                  'returning amplitude is scaled by sqrt(1 - alpha) from the '
+                  'table above. The numbers are real; the motion is scripted.',
+                ),
+                const SizedBox(height: 8),
+                const Body(
+                  'For reflection that genuinely emerges from the physics - '
+                  'where the inversion at a fixed end falls out of the '
+                  'boundary condition rather than being drawn - use Wave on a '
+                  'string. Absorption by coefficient is not something that '
+                  'solver models, which is why both screens exist.',
+                ),
               ],
             ),
           ),
