@@ -265,6 +265,14 @@ class SimulationScreen extends StatelessWidget {
                       size: 13.5,
                       color: c.textTertiary,
                     ),
+                    const SizedBox(height: 10),
+                    const Tip(
+                      'Watch the amber particle, not the bright bands. The '
+                      'bands sweep to the right; the particle only slides back '
+                      'and forth and ends up where it started. The air does '
+                      'not travel to your ear — only the disturbance does.',
+                      icon: Icons.visibility_outlined,
+                    ),
                   ],
                 ),
               ),

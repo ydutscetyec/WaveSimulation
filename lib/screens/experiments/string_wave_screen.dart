@@ -8,7 +8,10 @@ import '../../widgets/measure_tools.dart';
 import '../../widgets/solver_host.dart';
 import '../../widgets/ui_kit.dart';
 
-enum DriveMode { continuous, pulse, still }
+/// The three drive modes PhET's Wave on a String offers, in its order.
+/// Manual is the one that makes the simulation feel alive: you drag the end
+/// of the string yourself and watch what you made travel away from you.
+enum DriveMode { manual, oscillate, pulse }
 
 /// Module 1 - Wave on a string.
 ///
@@ -34,27 +37,48 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
   double _frequency = 1.0;
   double _amplitude = 0.2;
   double _playback = 1.0;
-  DriveMode _mode = DriveMode.continuous;
+  DriveMode _mode = DriveMode.oscillate;
   bool _running = true;
   bool _showRuler = false;
+  double _manualY = 0; // metres, set by dragging the left end
+  double _pulseWidth = 1.0; // metres
 
   double get _speed => _solver.speed;
   double get _wavelength => _frequency <= 0 ? 0 : _speed / _frequency;
   double get _period => _frequency <= 0 ? 0 : 1 / _frequency;
 
   void _drive(StringSolver s) {
-    if (_mode == DriveMode.continuous) {
+    if (_mode == DriveMode.oscillate) {
       s.driveSine(amplitude: _amplitude, frequency: _frequency);
+    } else if (_mode == DriveMode.manual) {
+      s.drive(_manualY);
     } else {
       s.drive(0);
     }
   }
 
+  /// Manual drive: the vertical position of the finger becomes the
+  /// displacement of the left end, in metres. Capped at the physical
+  /// amplitude limit so a drag cannot push neighbouring points through each
+  /// other.
+  void _onDragStart(DragStartDetails d) => _setManual(d.localPosition);
+  void _onDragUpdate(DragUpdateDetails d) => _setManual(d.localPosition);
+
+  void _setManual(Offset local) {
+    // The canvas maps +-0.6 m onto half its height, less 22 px of padding.
+    // Same constants the painter uses, so the handle lands under the finger.
+    final canvasH =
+        (MediaQuery.of(context).size.height * 0.26).clamp(170.0, 280.0);
+    final yScale = (canvasH / 2 - 22) / 0.6;
+    final metres = ((canvasH / 2) - local.dy) / yScale;
+    setState(() => _manualY = metres.clamp(-0.5, 0.5));
+  }
+
   void _sendPulse() {
     setState(() => _mode = DriveMode.pulse);
     _solver.addPulse(
-      centreM: 1.5,
-      widthM: math.max(0.6, _wavelength / 2),
+      centreM: math.max(1.2, _pulseWidth),
+      widthM: _pulseWidth,
       amplitude: _amplitude,
     );
   }
@@ -70,7 +94,8 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
       _frequency = 1.0;
       _amplitude = 0.2;
       _playback = 1.0;
-      _mode = DriveMode.continuous;
+      _mode = DriveMode.oscillate;
+      _manualY = 0;
       _running = true;
     });
   }
@@ -92,7 +117,7 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
         ..boundary = boundary;
       _frequency = frequency;
       _amplitude = amplitude;
-      _mode = DriveMode.continuous;
+      _mode = DriveMode.oscillate;
       _running = true;
     });
   }
@@ -117,7 +142,16 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
               metresAcross: _solver.length,
               // matches the 18 px padding the painter uses on each side
               insetFraction: 0.03,
-              child: SolverHost(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart:
+                    _mode == DriveMode.manual ? _onDragStart : null,
+                onPanUpdate:
+                    _mode == DriveMode.manual ? _onDragUpdate : null,
+                onPanEnd: _mode == DriveMode.manual
+                    ? (_) => setState(() => _manualY = 0)
+                    : null,
+                child: SolverHost(
                 key: _hostKey,
                 solver: _solver,
                 running: _running,
@@ -128,8 +162,10 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
                     repaint: repaint,
                     solver: _solver,
                     colors: c,
+                    manualMode: _mode == DriveMode.manual,
                   ),
                 ),
+              ),
               ),
             ),
           ),
@@ -220,10 +256,10 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
                     Expanded(
                       child: ValueCard(
                         label: 'Wavelength (derived)',
-                        value: _mode == DriveMode.continuous
+                        value: _mode == DriveMode.oscillate
                             ? _wavelength.toStringAsFixed(2)
                             : '—',
-                        unit: _mode == DriveMode.continuous ? 'm' : null,
+                        unit: _mode == DriveMode.oscillate ? 'm' : null,
                         color: c.amber,
                         compact: true,
                       ),
@@ -276,7 +312,7 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
                 ),
                 const SizedBox(height: 4),
                 Body(
-                  _mode == DriveMode.continuous
+                  _mode == DriveMode.oscillate
                       ? 'Wavelength is computed from c / f. There is no '
                           'wavelength slider, because setting it independently '
                           'would contradict v = f lambda.'
@@ -296,16 +332,30 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
               children: [
                 const PanelTitle('Driver', icon: Icons.vibration),
                 Segmented(
-                  labels: const ['Continuous', 'Pulse', 'Still'],
+                  labels: const ['Manual', 'Oscillate', 'Pulse'],
                   selectedIndex: _mode.index,
                   onSelect: (i) {
-                    if (i == 1) {
+                    if (i == 2) {
                       _sendPulse();
                     } else {
-                      setState(() => _mode = DriveMode.values[i]);
+                      setState(() {
+                        _mode = DriveMode.values[i];
+                        if (_mode == DriveMode.manual) _manualY = 0;
+                      });
                     }
                   },
                 ),
+                if (_mode == DriveMode.manual) ...[
+                  const SizedBox(height: 10),
+                  Tip(
+                    'Drag the amber handle on the left end of the string up '
+                    'and down. Whatever shape you make travels away from you. '
+                    'Shake it quickly for a short wavelength, slowly for a '
+                    'long one.',
+                    icon: Icons.touch_app,
+                    color: c.amber,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 StepSlider(
                   label: 'Frequency',
@@ -327,6 +377,17 @@ class _StringWaveScreenState extends State<StringWaveScreen> {
                   onChanged: (v) => setState(() => _amplitude = v),
                 ),
                 if (_mode == DriveMode.pulse) ...[
+                  const SizedBox(height: 10),
+                  StepSlider(
+                    label: 'Pulse width',
+                    value: _pulseWidth,
+                    min: 0.3,
+                    max: 3.0,
+                    step: 0.1,
+                    color: c.amber,
+                    readout: '${_pulseWidth.toStringAsFixed(1)} m',
+                    onChanged: (v) => setState(() => _pulseWidth = v),
+                  ),
                   const SizedBox(height: 6),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -589,11 +650,13 @@ class _StringPainter extends CustomPainter {
     required this.repaint,
     required this.solver,
     required this.colors,
+    required this.manualMode,
   }) : super(repaint: repaint);
 
   final SolverTicker repaint;
   final StringSolver solver;
   final WaveColors colors;
+  final bool manualMode;
 
   static const double _maxDisplay = 0.6; // metres mapped to half the height
 
@@ -624,6 +687,7 @@ class _StringPainter extends CustomPainter {
     );
 
     // the string itself, straight from the solver arrays
+    // A faint line through the beads, so the shape reads at a glance.
     final path = Path();
     final n = solver.points;
     for (var i = 0; i < n; i++) {
@@ -638,18 +702,75 @@ class _StringPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = colors.accent
+        ..color = fade(colors.accent, 0.45)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.6
+        ..strokeWidth = 1.6
         ..strokeJoin = StrokeJoin.round,
     );
 
-    // driven end
-    canvas.drawCircle(
-      Offset(pad, mid - solver.yAt(0) * yScale),
-      6,
-      Paint()..color = colors.amber,
+    // The string as beads. Discrete beads are what let a student answer the
+    // question that matters: do the beads travel with the wave, or does only
+    // the disturbance travel? A continuous line hides it.
+    const beadCount = 64;
+    final beadPaint = Paint()..color = colors.accent;
+    final markIndex = (beadCount * 0.55).round();
+    double markX = 0;
+    double markY = mid;
+
+    for (var b = 0; b <= beadCount; b++) {
+      final f = b / beadCount;
+      final i = (f * (n - 1)).round();
+      final x = pad + f * usable;
+      final y = mid - solver.yAt(i) * yScale;
+      if (b == markIndex) {
+        markX = x;
+        markY = y;
+        continue; // drawn last, on top
+      }
+      canvas.drawCircle(Offset(x, y), 3.2, beadPaint);
+    }
+
+    // One bead picked out, with the vertical track it is confined to. It
+    // never moves sideways: the wave does.
+    canvas.drawLine(
+      Offset(markX, mid - 0.5 * yScale * 0.9),
+      Offset(markX, mid + 0.5 * yScale * 0.9),
+      Paint()
+        ..color = fade(colors.amber, 0.30)
+        ..strokeWidth = 1.2,
     );
+    canvas.drawCircle(
+      Offset(markX, mid),
+      3,
+      Paint()
+        ..color = fade(colors.amber, 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+    canvas.drawCircle(Offset(markX, markY), 6.5, Paint()..color = colors.amber);
+    _label(canvas, 'watch this bead', Offset(markX, markY + 11), colors.amber,
+        centered: true);
+
+    // The driven end: a grab handle in manual mode, a plain anchor otherwise.
+    final driveY = mid - solver.yAt(0) * yScale;
+    if (manualMode) {
+      canvas.drawCircle(
+        Offset(pad, driveY),
+        16,
+        Paint()..color = fade(colors.amber, 0.22),
+      );
+      canvas.drawCircle(
+        Offset(pad, driveY),
+        16,
+        Paint()
+          ..color = colors.amber
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      _label(canvas, 'drag', Offset(pad, driveY - 30), colors.amber,
+          centered: true);
+    }
+    canvas.drawCircle(Offset(pad, driveY), 7, Paint()..color = colors.amber);
 
     // far end marker
     final endPaint = Paint()
@@ -715,5 +836,6 @@ class _StringPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _StringPainter old) => old.colors != colors;
+  bool shouldRepaint(covariant _StringPainter old) =>
+      old.colors != colors || old.manualMode != manualMode;
 }
