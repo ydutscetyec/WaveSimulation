@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 
 import '../../services/diffraction_physics.dart';
 import '../../services/wave_physics.dart';
-import '../../theme/palette.dart';
+// Only pal() is taken from here; fade() would collide with the
+// identical helper exported by wave_theme.dart.
+import '../../theme/palette.dart' show pal;
 import '../../theme/wave_theme.dart';
 import '../../widgets/sim_clock.dart';
 import '../../widgets/ui_kit.dart';

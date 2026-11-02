@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../services/em_physics.dart';
 import '../../services/wave_physics.dart';
-import '../../theme/palette.dart';
 import '../../theme/wave_theme.dart';
 import '../../widgets/sim_clock.dart';
 import '../../widgets/ui_kit.dart';
