@@ -6,13 +6,16 @@ version: 1.0.0+1
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
-# No third-party runtime packages on purpose:
-#  - guarantees a fully offline app
-#  - nothing to break when pub.dev versions move
-#  - smaller APK, faster cold start
+# One third-party runtime package, and only one. The app still works fully
+# offline - audioplayers plays an in-memory buffer we synthesise ourselves and
+# never touches the network. Everything else is still hand-rolled, which keeps
+# the APK small and keeps pub.dev version drift out of the build.
 dependencies:
   flutter:
     sdk: flutter
+  # Playback only. The waveform is generated in lib/services/tone_generator.dart
+  # and handed over as bytes, so no asset files and no network access.
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:

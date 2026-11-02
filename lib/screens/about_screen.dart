@@ -29,7 +29,9 @@ class AboutScreen extends StatelessWidget {
     'Amplitude is a relative 0 to 1 scale, not decibels.',
     'The animation is slowed and the canvas spans a chosen width. Both are '
         'shown on screen; the printed numbers are the real ones.',
-    'There is no audio output. The real experiments supply the sound.',
+    'The tone is a pure sine synthesised on the device at the frequency '
+        'shown. A phone speaker rolls off badly below about 200 Hz, so a low '
+        'tone will sound quieter than the amplitude setting suggests.',
   ];
 
   @override

@@ -4,6 +4,7 @@ import '../models/acoustic_material.dart';
 import '../models/simulation_state.dart';
 import '../theme/wave_theme.dart';
 import '../widgets/sim_clock.dart';
+import '../widgets/tone_toggle.dart';
 import '../widgets/ui_kit.dart';
 import '../widgets/wave_canvas.dart';
 
@@ -264,6 +265,11 @@ class SimulationScreen extends StatelessWidget {
                       'move while you drag it.',
                       size: 13.5,
                       color: c.textTertiary,
+                    ),
+                    const SizedBox(height: 14),
+                    ToneToggle(
+                      frequencyHz: state.frequency,
+                      amplitude: state.amplitude,
                     ),
                     const SizedBox(height: 10),
                     const Tip(

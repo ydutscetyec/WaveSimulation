@@ -87,15 +87,27 @@ blocks pub.dev, so the source is unverified by a compiler. CI is the check.
 lib/
   main.dart                     entry, theme mode, routes
   theme/wave_theme.dart         WaveColors palettes + ThemeData
-  services/wave_physics.dart    every equation (unchanged, still tested)
+  services/
+    wave_physics.dart           acoustic + general wave equations
+    string_solver.dart          FDTD solver for the damped wave equation
+    doppler_physics.dart        moving source and observer
+    optics_physics.dart         Snell, critical angle, thin lens
+    diffraction_physics.dart    Huygens phasor sum + Fraunhofer slit
+    em_physics.dart             c = fλ, photon energy, Malus, spectrum
+    tone_generator.dart         loop-safe PCM/WAV sine synthesis
+    tone_player.dart            playback, debounced, fails to silence
   models/                       state, materials, objects, quiz
   widgets/
     sim_clock.dart              Ticker clock, repaints only canvases
     wave_canvas.dart            particle painter + graph painter
     ui_kit.dart                 panels, cards, sliders, segmented control
   screens/                      home, simulation, materials, concepts,
-                                challenges, about, experiments/ (6)
-test/wave_physics_test.dart     28 assertions against the equations
+                                challenges, about, experiments/ (15)
+test/
+  wave_physics_test.dart        assertions against the acoustic equations
+  new_modules_test.dart         solver stability, Doppler, optics
+  wave_optics_test.dart         diffraction, EM spectrum, polarisation
+  tone_generator_test.dart      loop seam, pitch accuracy, WAV container
 ```
 
 ## Physics (unchanged)
@@ -111,6 +123,12 @@ test/wave_physics_test.dart     28 assertions against the equations
 | Reflected amplitude | `√(1 − α)` |
 | Interference | `Aᵣ = √(A₁² + A₂² + 2A₁A₂cos δ)` |
 | Standing wave | `y = 2A sin(kx) cos(ωt)` |
+| Huygens wavelet | `A = Σ e^{ikr} / √r` (cylindrical, 2D tank) |
+| Single slit | `I/I₀ = (sin β / β)²,  β = πa sin θ / λ` |
+| Slit minima | `a sin θ = mλ` — none exist when `λ > a` |
+| EM wave | `c = fλ`, `E = hf` |
+| Malus | `I = I₀cos²θ`, with `½I₀` at the first polariser |
+| String speed | `v = √(T/μ)` |
 
 Amplitude is capped at `0.9/k` so strain stays below 1 — beyond that,
 neighbouring particles would pass through each other.
